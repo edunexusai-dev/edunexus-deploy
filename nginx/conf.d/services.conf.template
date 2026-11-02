@@ -1,0 +1,84 @@
+# --------------------------------------------------------------------------
+# Edunexus Platform — Nginx reverse proxy
+# Replace ${DOMAIN_*} and ${KEYCLOAK_HOSTNAME} with actual values.
+# For HTTPS: replace the ssl_certificate paths or use certbot --nginx.
+# --------------------------------------------------------------------------
+
+# Redirect HTTP → HTTPS (all hosts)
+server {
+    listen 80;
+    server_name ${DOMAIN_EDUNEXUSAI} ${DOMAIN_CAMPUSCORE} ${DOMAIN_STRAPI} ${KEYCLOAK_HOSTNAME};
+
+    # Let's Encrypt ACME challenge
+    location /.well-known/acme-challenge/ {
+        root /usr/share/nginx/html;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# --- EdunexusAI API ----------------------------------------------------------
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN_EDUNEXUSAI};
+
+    ssl_certificate     /etc/nginx/certs/${DOMAIN_EDUNEXUSAI}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/${DOMAIN_EDUNEXUSAI}/privkey.pem;
+
+    # WebSocket (Socket.IO portal chat)
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400s;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:5001;
+    }
+}
+
+# --- CampusCore SIS ----------------------------------------------------------
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN_CAMPUSCORE};
+
+    ssl_certificate     /etc/nginx/certs/${DOMAIN_CAMPUSCORE}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/${DOMAIN_CAMPUSCORE}/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:4000;
+    }
+}
+
+# --- Strapi CMS (admin only — not public-facing) -----------------------------
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN_STRAPI};
+
+    ssl_certificate     /etc/nginx/certs/${DOMAIN_STRAPI}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/${DOMAIN_STRAPI}/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:1337;
+    }
+}
+
+# --- Keycloak -----------------------------------------------------------------
+server {
+    listen 443 ssl;
+    server_name ${KEYCLOAK_HOSTNAME};
+
+    ssl_certificate     /etc/nginx/certs/${KEYCLOAK_HOSTNAME}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/${KEYCLOAK_HOSTNAME}/privkey.pem;
+
+    # Keycloak needs larger buffers for SAML and large tokens
+    proxy_buffer_size 128k;
+    proxy_buffers 4 256k;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+    }
+}

@@ -1,0 +1,13 @@
+# Real env files (never commit secrets)
+.env.compose
+env/*.env
+!env/*.env.example
+
+# TLS certificates
+nginx/certs/*
+!nginx/certs/.gitkeep
+
+# Keycloak import (may contain user data — commit only after review)
+# keycloak-import/
+
+.DS_Store

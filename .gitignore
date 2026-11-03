@@ -11,3 +11,9 @@ nginx/certs/*
 # keycloak-import/
 
 .DS_Store
+
+# Sensitive Keycloak realm export
+deploy/keycloak-import/
+
+# Sensitive Keycloak realm export
+/keycloak-import/

@@ -1,15 +1,13 @@
 # EdunexusAI release handbook
 
-How a change on the MacBook reaches production, every time. Checked against the repositories, GitHub and the production server on 2026-11-08.
-
-`release/release.sh` has not been run against production yet. It does the same steps used for the releases of 3–4 Nov 2026, and its `--print` mode has been checked. The first time you use it, read the `--print` output first.
+How a change on the MacBook reaches production, every time. Checked against the repositories, GitHub and the production server on 2026-11-08; `release/release.sh` was used for the combined release of 2026-11-16 (build, backup, migrate, switch).
 
 ## 1. What runs where
 
 | Application | Repository | Production branch | Hosted on | How it deploys | Running now |
 |---|---|---|---|---|---|
-| Frontend | `Pathackcoder/edunexusai`, `frontend/` | `main` | Vercel | **Automatic** on push to `main` | `5fba632` |
-| API | `Pathackcoder/edunexusai`, `backend/` + `shared/` | `main` | Docker on EC2 | **Manual**, `release.sh` | `b025fd83ec44` |
+| Frontend | `Pathackcoder/edunexusai`, `frontend/` | `main` | Vercel | **Automatic** on push to `main` | `6981fcf` |
+| API | `Pathackcoder/edunexusai`, `backend/` + `shared/` | `main` | Docker on EC2 | **Manual**, `release.sh` | `9938411e9bb4` |
 | CampusCore SIS | `edunexusai-dev/campuscore-sis` | **`deploy/aws-release`** | Docker on EC2 | **Manual**, `release.sh` | `db30da75628f` |
 | Strapi CMS | `edunexusai-dev/feddrick-cms` | **`deploy/aws-release`** | Docker on EC2 | **Manual**, `release.sh` | `e7da358e1eee` |
 | Keycloak | Stock image; config in its own database | None | Docker on EC2 | Image version in `compose.yml`; realm changes in its Admin Console | `26.8.1` |
@@ -191,6 +189,14 @@ cd /opt/edunexus/edunexusai && docker compose up -d --no-build --force-recreate 
 For the others, use `campuscore.env` with `/opt/edunexus/campuscore` and service `campuscore`, or `strapi.env` with `/opt/edunexus/strapi` and service `strapi`.
 
 Settings are read when a container starts. A brand-new setting must also go into `.env.example` in the same pull request as the code.
+
+### Secrets that a feature needs
+
+Add them to the production settings file in a session (section 8), never through Git. On 2026-11-16 `CLAUDE_API_KEY` (Nexora) was added this way. `ssm-run.py` sets `umask 077`, so the temporary copy of a script on the server is private; delete any local script that carried a secret as soon as it has run.
+
+### nginx
+
+Locations on the API site that are not access-logged: `/api/v1/analytics/events` and `/api/v1/analytics/presence`. Back up the site file to `/opt/edunexus/backups/`, edit it, run `nginx -t`, and reload only if it passes.
 
 ## 9. Health checks
 
